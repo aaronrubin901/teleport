@@ -26,6 +26,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"testing"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -54,7 +55,7 @@ type TLSSuite struct {
 var _ = check.Suite(&TLSSuite{})
 
 func (s *TLSSuite) SetUpSuite(c *check.C) {
-	utils.InitLoggerForTests()
+	utils.InitLoggerForTests(testing.Verbose())
 }
 
 func (s *TLSSuite) SetUpTest(c *check.C) {
@@ -1731,8 +1732,8 @@ func (s *TLSSuite) TestRegisterCAPath(c *check.C) {
 	c.Assert(err, check.IsNil)
 }
 
-// TestHeartbeat tests heartbeat stream connection
-func (s *TLSSuite) TestHeartbeat(c *check.C) {
+// TestConnectHeartbeat tests heartbeat stream connection
+func (s *TLSSuite) TestConnectHeartbeat(c *check.C) {
 	clt, err := s.server.NewClient(TestBuiltin(teleport.RoleNode))
 	c.Assert(err, check.IsNil)
 
@@ -1742,6 +1743,8 @@ func (s *TLSSuite) TestHeartbeat(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	err = stream.Send(&proto.Heartbeat{})
-	c.Assert(err, check.IsNil)
+	log.Debugf("err: %v", err)
 
+	event, err := stream.Recv()
+	log.Debugf("err: %v %v", event, err)
 }

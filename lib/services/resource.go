@@ -318,6 +318,36 @@ type ResourceHeader struct {
 	Metadata Metadata `json:"metadata"`
 }
 
+// GetName returns the name of the resource
+func (h *ResourceHeader) GetName() string {
+	return h.Metadata.Name
+}
+
+// SetName sets the name of the resource
+func (h *ResourceHeader) SetName(v string) {
+	h.Metadata.SetName(v)
+}
+
+// Expiry returns object expiry setting
+func (h *ResourceHeader) Expiry() time.Time {
+	return h.Metadata.Expiry()
+}
+
+// SetExpiry sets object expiry
+func (h *ResourceHeader) SetExpiry(t time.Time) {
+	h.Metadata.SetExpiry(t)
+}
+
+// SetTTL sets Expires header using current clock
+func (h *ResourceHeader) SetTTL(clock clockwork.Clock, ttl time.Duration) {
+	h.Metadata.SetTTL(clock, ttl)
+}
+
+// GetMetadata returns object metadata
+func (h *ResourceHeader) GetMetadata() Metadata {
+	return h.Metadata
+}
+
 // UnmarshalJSON unmarshals header and captures raw state
 func (u *UnknownResource) UnmarshalJSON(raw []byte) error {
 	var h ResourceHeader

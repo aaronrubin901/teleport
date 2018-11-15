@@ -126,8 +126,6 @@ type GetResult struct {
 type OpType int
 
 const (
-	OpCreate OpType = iota
-	OpUpdate OpType = iota
 	OpPut    OpType = iota
 	OpDelete OpType = iota
 )
@@ -135,10 +133,6 @@ const (
 // String returns user-friendly description of the operation
 func (o OpType) String() string {
 	switch o {
-	case OpCreate:
-		return "Create"
-	case OpUpdate:
-		return "Update"
 	case OpPut:
 		return "Put"
 	case OpDelete:

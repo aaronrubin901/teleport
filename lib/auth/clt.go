@@ -32,6 +32,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/http2"
+
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/lib/auth/proto"
 	"github.com/gravitational/teleport/lib/defaults"
@@ -152,6 +154,7 @@ func NewTLSClientWithDialer(dialContext DialContext, cfg *tls.Config, params ...
 	if cfg.ServerName == "" {
 		cfg.ServerName = teleport.APIDomain
 	}
+	cfg.NextProtos = []string{http2.NextProtoTLS}
 	transport := &http.Transport{
 		// notice that below roundtrip.Client is passed
 		// teleport.APIEndpoint as an address for the API server, this is
@@ -248,9 +251,13 @@ func (c *Client) GRPC() (proto.AuthServiceClient, error) {
 		return c.grpcClient, nil
 	}
 	dialer := grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-		return c.dialContext(context.TODO(), "tcp", addr)
+		c, err := c.dialContext(context.TODO(), "tcp", addr)
+		if err != nil {
+			log.Debugf("Dial error: %v", err)
+		}
+		return c, err
 	})
-	conn, err := grpc.DialContext(context.TODO(), teleport.APIDomain,
+	conn, err := grpc.Dial(teleport.APIDomain,
 		dialer,
 		grpc.WithTransportCredentials(credentials.NewTLS(c.tlsConfig)))
 	if err != nil {
@@ -629,18 +636,31 @@ func (c *Client) RegisterNewAuthServer(token string) error {
 
 // UpsertNode is used by SSH servers to reprt their presence
 // to the auth servers in form of hearbeat expiring after ttl period.
-func (c *Client) UpsertNode(s services.Server) error {
+func (c *Client) UpsertNode(s services.Server) (*services.KeepAliveHandle, error) {
 	if s.GetNamespace() == "" {
-		return trace.BadParameter("missing node namespace")
+		return nil, trace.BadParameter("missing node namespace")
 	}
 	data, err := services.GetServerMarshaler().MarshalServer(s)
 	if err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 	args := &upsertServerRawReq{
 		Server: data,
 	}
-	_, err = c.PostJSON(c.Endpoint("namespaces", s.GetNamespace(), "nodes"), args)
+	out, err := c.PostJSON(c.Endpoint("namespaces", s.GetNamespace(), "nodes"), args)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	var handle services.KeepAliveHandle
+	if err := json.Unmarshal(out.Bytes(), &handle); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return &handle, nil
+}
+
+// KeepAliveNode updates node keep alive information
+func (c *Client) KeepAliveNode(ctx context.Context, handle services.KeepAliveHandle) error {
+	_, err := c.PostJSON(c.Endpoint("namespaces", defaults.Namespace, "nodes", "keepalive"), handle)
 	return trace.Wrap(err)
 }
 

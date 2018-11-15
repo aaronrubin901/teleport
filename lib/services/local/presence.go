@@ -204,19 +204,34 @@ func (s *PresenceService) GetNodes(namespace string, opts ...services.MarshalOpt
 
 // UpsertNode registers node presence, permanently if TTL is 0 or for the
 // specified duration with second resolution if it's >= 1 second.
-func (s *PresenceService) UpsertNode(server services.Server) error {
+func (s *PresenceService) UpsertNode(server services.Server) (*services.KeepAliveHandle, error) {
 	if server.GetNamespace() == "" {
-		return trace.BadParameter("missing node namespace")
+		return nil, trace.BadParameter("missing node namespace")
 	}
 	value, err := services.GetServerMarshaler().MarshalServer(server)
 	if err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
-	_, err = s.Put(context.TODO(), backend.Item{
+	lease, err := s.Put(context.TODO(), backend.Item{
 		Key:     backend.Key(namespacesPrefix, server.GetNamespace(), nodesPrefix, server.GetName()),
 		Value:   value,
 		Expires: server.Expiry(),
 	})
+	if server.Expiry().IsZero() {
+		return &services.KeepAliveHandle{}, nil
+	}
+	return &services.KeepAliveHandle{LeaseID: lease.ID, ServerName: server.GetName()}, nil
+}
+
+// KeepAliveNode updates node expiry
+func (s *PresenceService) KeepAliveNode(ctx context.Context, h services.KeepAliveHandle) error {
+	if err := h.CheckAndSetDefaults(); err != nil {
+		return trace.Wrap(err)
+	}
+	err := s.KeepAlive(ctx, backend.Lease{
+		ID:  h.LeaseID,
+		Key: backend.Key(namespacesPrefix, h.Namespace, nodesPrefix, h.ServerName),
+	}, h.Expires)
 	return trace.Wrap(err)
 }
 

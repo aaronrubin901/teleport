@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Gravitational, Inc.
+Copyright 2015-2018 Gravitational, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -78,10 +78,16 @@ func (a *AuthWithRoles) authConnectorAction(namespace string, resource string, v
 // hasBuiltinRole checks the type of the role set returned and the name.
 // Returns true if role set is builtin and the name matches.
 func (a *AuthWithRoles) hasBuiltinRole(name string) bool {
-	if _, ok := a.checker.(BuiltinRoleSet); !ok {
+	return hasBuiltinRole(a.checker, name)
+}
+
+// hasBuiltinRole checks the type of the role set returned and the name.
+// Returns true if role set is builtin and the name matches.
+func hasBuiltinRole(checker services.AccessChecker, name string) bool {
+	if _, ok := checker.(BuiltinRoleSet); !ok {
 		return false
 	}
-	if !a.checker.HasRole(name) {
+	if !checker.HasRole(name) {
 		return false
 	}
 
@@ -334,14 +340,21 @@ func (a *AuthWithRoles) UpsertNodes(namespace string, servers []services.Server)
 	return a.authServer.UpsertNodes(namespace, servers)
 }
 
-func (a *AuthWithRoles) UpsertNode(s services.Server) error {
+func (a *AuthWithRoles) UpsertNode(s services.Server) (*services.KeepAliveHandle, error) {
 	if err := a.action(s.GetNamespace(), services.KindNode, services.VerbCreate); err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 	if err := a.action(s.GetNamespace(), services.KindNode, services.VerbUpdate); err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 	return a.authServer.UpsertNode(s)
+}
+
+func (a *AuthWithRoles) KeepAliveNode(ctx context.Context, handle services.KeepAliveHandle) error {
+	if err := a.action(defaults.Namespace, services.KindNode, services.VerbUpdate); err != nil {
+		return trace.Wrap(err)
+	}
+	return a.authServer.KeepAliveNode(ctx, handle)
 }
 
 // filterNodes filters nodes based off the role of the logged in user.

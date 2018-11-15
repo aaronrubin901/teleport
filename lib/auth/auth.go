@@ -31,6 +31,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"math/rand"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -731,6 +732,15 @@ func (s *AuthServer) ClientCertPool(clusterName string) (*x509.CertPool, error) 
 		}
 	}
 	return pool, nil
+}
+
+// ExtractHostID returns host id based on the host username
+func ExtractHostID(hostName string, clusterName string) (string, error) {
+	suffix := "." + clusterName
+	if !strings.HasSuffix(hostName, suffix) {
+		return "", trace.BadParameter("expected suffix %q in %q", "."+clusterName, suffix)
+	}
+	return strings.TrimSuffix(hostName, suffix), nil
 }
 
 // HostFQDN consits of host UUID and cluster name joined via .

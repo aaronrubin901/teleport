@@ -214,7 +214,7 @@ func (l *LiteBackend) Create(ctx context.Context, i backend.Item) (*backend.Leas
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			if _, err := stmt.ExecContext(ctx, backend.OpCreate, created, string(i.Key), id(created), i.Value); err != nil {
+			if _, err := stmt.ExecContext(ctx, backend.OpPut, created, string(i.Key), id(created), i.Value); err != nil {
 				return trace.Wrap(err)
 			}
 		}
@@ -279,7 +279,7 @@ func (l *LiteBackend) CompareAndSwap(ctx context.Context, expected backend.Item,
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			if _, err := stmt.ExecContext(ctx, backend.OpUpdate, created, string(replaceWith.Key), id(created), replaceWith.Value); err != nil {
+			if _, err := stmt.ExecContext(ctx, backend.OpPut, created, string(replaceWith.Key), id(created), replaceWith.Value); err != nil {
 				return trace.Wrap(err)
 			}
 		}
@@ -309,7 +309,7 @@ func (l *LiteBackend) Put(ctx context.Context, i backend.Item) (*backend.Lease, 
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			if _, err := stmt.ExecContext(ctx, backend.OpCreate, created, string(i.Key), id(created), i.Value); err != nil {
+			if _, err := stmt.ExecContext(ctx, backend.OpPut, created, string(i.Key), id(created), i.Value); err != nil {
 				return trace.Wrap(err)
 			}
 		}
@@ -429,7 +429,7 @@ func (l *LiteBackend) putRangeInTransaction(ctx context.Context, tx *sql.Tx, ite
 	for i := range items {
 		created := l.clock.Now().UTC()
 		if !l.EventsOff && !forceEventsOff {
-			if _, err := eventsStmt.ExecContext(ctx, backend.OpCreate, created, string(items[i].Key), id(created), items[i].Value); err != nil {
+			if _, err := eventsStmt.ExecContext(ctx, backend.OpPut, created, string(items[i].Key), id(created), items[i].Value); err != nil {
 				return trace.Wrap(err)
 			}
 		}
@@ -467,7 +467,7 @@ func (l *LiteBackend) Update(ctx context.Context, i backend.Item) (*backend.Leas
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			if _, err := stmt.ExecContext(ctx, backend.OpCreate, created, string(i.Key), id(created), i.Value); err != nil {
+			if _, err := stmt.ExecContext(ctx, backend.OpPut, created, string(i.Key), id(created), i.Value); err != nil {
 				return trace.Wrap(err)
 			}
 		}

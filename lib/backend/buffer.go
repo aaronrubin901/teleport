@@ -123,6 +123,7 @@ func matchPrefix(prefix []byte, e Event) bool {
 func (c *CircularBuffer) fanOutEvent(r Event) {
 	for i, watcher := range c.watchers {
 		if !matchPrefix(watcher.prefix, r) {
+			c.Debugf("Skip prefix match %v not matching %v", string(watcher.prefix), string(r.Item.Key))
 			continue
 		}
 		select {

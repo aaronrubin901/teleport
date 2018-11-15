@@ -17,7 +17,11 @@ limitations under the License.
 package services
 
 import (
+	"context"
 	"time"
+
+	"github.com/gravitational/teleport/lib/defaults"
+	"github.com/gravitational/trace"
 )
 
 // Presence records and reports the presence of all components
@@ -38,10 +42,13 @@ type Presence interface {
 
 	// UpsertNode registers node presence, permanently if TTL is 0 or for the
 	// specified duration with second resolution if it's >= 1 second.
-	UpsertNode(server Server) error
+	UpsertNode(server Server) (*KeepAliveHandle, error)
 
 	// UpsertNodes bulk inserts nodes.
 	UpsertNodes(namespace string, servers []Server) error
+
+	// KeepAliveNode updates node TTL in the storage
+	KeepAliveNode(ctx context.Context, h KeepAliveHandle) error
 
 	// GetAuthServers returns a list of registered servers
 	GetAuthServers() ([]Server, error)
@@ -156,4 +163,33 @@ type Site struct {
 	Name          string    `json:"name"`
 	LastConnected time.Time `json:"lastconnected"`
 	Status        string    `json:"status"`
+}
+
+// KeepAliveHandle is a keep alive handle
+// used to keep server presence up
+type KeepAliveHandle struct {
+	// Namespace is a namespace of the server
+	Namespace string
+	// LeaseID is a keealive lease ID
+	LeaseID int64
+	// ServerName is a server name
+	ServerName string
+	// Expires is a time to set for lease expiry
+	Expires time.Time
+}
+
+// IsEmpty returns true if keepalive is empty,
+// used to indicate that keepalive is not supported
+func (s *KeepAliveHandle) IsEmpty() bool {
+	return s.LeaseID == 0 && s.ServerName == ""
+}
+
+func (s *KeepAliveHandle) CheckAndSetDefaults() error {
+	if s.IsEmpty() {
+		return trace.BadParameter("no lease ID or server name is specified")
+	}
+	if s.Namespace == "" {
+		s.Namespace = defaults.Namespace
+	}
+	return nil
 }

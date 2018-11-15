@@ -426,9 +426,12 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:d92cabdc7cfe96302f98b2fac7b0f1107ef9ab066708d45d6feaca39aeb4f6f3"
+  digest = "1:7fe2f0540c93189eb5c82b9dbd118d7f4f8ab9993101c3198ed6870bfadbf2e0"
   name = "github.com/gravitational/trace"
-  packages = ["."]
+  packages = [
+    ".",
+    "trail",
+  ]
   pruneopts = "NUT"
   revision = "3318e711adee0b3f48d3399ebf5aaddf329a2b4f"
   version = "1.1.5"
@@ -1118,6 +1121,7 @@
     "github.com/gravitational/reporting/types",
     "github.com/gravitational/roundtrip",
     "github.com/gravitational/trace",
+    "github.com/gravitational/trace/trail",
     "github.com/gravitational/ttlmap",
     "github.com/jonboulle/clockwork",
     "github.com/json-iterator/go",
@@ -1152,6 +1156,7 @@
     "golang.org/x/text/encoding/unicode",
     "google.golang.org/grpc",
     "google.golang.org/grpc/codes",
+    "google.golang.org/grpc/credentials",
     "google.golang.org/grpc/status",
     "gopkg.in/check.v1",
     "gopkg.in/yaml.v2",
